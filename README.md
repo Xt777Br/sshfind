@@ -31,6 +31,12 @@ Using **wget**:
 bash <(wget -qO- https://raw.githubusercontent.com/Xt777Br/sshfind/main/install.sh)
 ```
 
+## Uninstallation
+
+```bash
+sudo rm -f /usr/local/bin/sshfind ~/.local/bin/sshfind && sed -i '/export PATH=\$HOME\/.local\/bin:\$PATH/d' ~/.bashrc
+```
+
 ## Usage
 
 You can run the script with different options. The script accepts both short and long options.
