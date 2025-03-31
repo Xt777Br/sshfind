@@ -128,7 +128,7 @@ Select an SSH server:<br>
 If the `--watch` option is enabled, the script continuously monitors the network for SSH servers, retrying if no servers are found. You can configure the retry interval and number of retries with the `--watch-interval` and `--watch-retries` options.
 ```
 $ sshfind --watch --watch-interval 15
-⠴ Trying in 10 Seconds...
+⠴ Trying in 15 Seconds...
 ```
 
 ## Troubleshooting
