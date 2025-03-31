@@ -205,6 +205,7 @@ while [[ $# -gt 0 ]]; do
     else
       sudo rm -f "$(which "$0")"
     fi
+    sed -i '/export PATH=\$HOME\/.local\/bin:\$PATH/d' ~/.bashrc
     echo "Uninstall complete."
     exit 0;;
   -h | --help)
