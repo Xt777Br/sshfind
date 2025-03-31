@@ -114,7 +114,7 @@ If multiple SSH servers are found, an interactive menu is displayed where users 
 
 ```bash
 $ sshfind
-Select an SSH server:<br>
+Select an SSH server:
 192.168.4.18
 192.168.4.9
 
