@@ -196,7 +196,7 @@ while [[ $# -gt 0 ]]; do
     WATCH_ENDLESS=false;
     WATCH_RETRIES="$2"; shift 2;;
   --update)
-    update "$@";;
+    update "$@"; exit;;
   -h | --help)
     help; exit 0;;
   --* | -*)
