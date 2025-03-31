@@ -34,7 +34,7 @@ bash <(wget -qO- https://raw.githubusercontent.com/Xt777Br/sshfind/main/install.
 ## Uninstallation
 
 ```bash
-sudo rm -f /usr/local/bin/sshfind ~/.local/bin/sshfind && sed -i '/export PATH=\$HOME\/.local\/bin:\$PATH/d' ~/.bashrc
+sshfind --uninstall
 ```
 
 ## Usage
@@ -64,6 +64,7 @@ sshfind [OPTIONS]
 | `--watch-interval SECS`  | Set the interval between repeated scans (default: 10 seconds)               |
 | `--watch-retries NUM`    | Number of retries for the `--watch` mode (default: 1)                       |
 | `--update`               | Update the script to the latest version from GitHub                         |
+| `--uninstall`               | Uninstall the script                                                      |
 | `--keep-menu`            | Keep the SSH connection menu visible after disconnection (default: off)     |
 
 ### Examples
