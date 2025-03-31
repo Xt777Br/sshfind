@@ -1,0 +1,267 @@
+#!/usr/bin/env bash
+
+# Header
+VERSION="1.0"
+REPO="Xt777Br/sshfind"
+REPO_URL="https://raw.githubusercontent.com/${REPO}/main/sshfind.sh"
+SCRIPT_PATH="$(realpath "$0")"
+
+# Variables
+SPINNER=("⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇")
+RESET=$(tput sgr0)  # RESET colors
+FG=$(tput setaf 9)  # Default foreground color
+BG=$(tput setab 9)  # Default background color
+temp_file=$(mktemp) || {
+  echo "Failed to create temp file"
+  exit 1
+}
+trap 'rm -f "$temp_file"' EXIT
+
+# Default values
+PORT=22
+USER=""
+VERBOSE=0
+TIMEOUT=3
+RETRIES=1
+INTERFACE="-l"
+SSH_TIMEOUT=5
+SUBNET=""
+WATCH=false
+WATCH_RETRIES=1
+WATCH_INTERVAL=10  # Default: 10 seconds
+WATCH_ENDLESS=true
+
+invPrint() {
+  local text="$1"
+  local cols=$(tput cols)
+  local text_length=${#text}
+
+  # Ensure there's space for padding
+  if [[ $cols -gt $text_length ]]; then
+    x=$((cols - text_length))
+  else
+    x=0  # Prevent negative spacing
+  fi
+
+  # Print text with terminal default colors
+  printf "%s%s%s%s%*s%s" "$FG" "$BG" "$text" "$RESET" "$x" "" "$RESET"
+}
+
+start_SPINNER() {
+  (
+    trap 'exit 0' TERM
+    local SPINNER_index=0
+    while true; do
+      msg=$(cat "$temp_file" 2>/dev/null)
+      printf "\r\033[K%s %s  " "${SPINNER[SPINNER_index]}" "$msg"
+      SPINNER_index=$(((SPINNER_index + 1) % ${#SPINNER[@]}))
+      sleep 0.1
+    done
+  ) &
+  SPINNER_pid=$!
+}
+
+stop_SPINNER() {
+  kill "$SPINNER_pid" 2>/dev/null
+  wait "$SPINNER_pid" 2>/dev/null
+  printf "\r\033[K"
+}
+
+connectSSH() {
+  local target_ip="$1"
+  echo "Connecting to: ${target_ip}:${PORT}..."
+  sleep 0.2
+  ssh "${ssh_opts[@]}" ${USER:+${USER}@}"${target_ip}" -p "$PORT"
+}
+
+connectMenu() {
+  local index=0 key
+  local ssh_servers=${#ssh_available[@]}
+
+  trap 'echo -e "\nExiting..."; exit 0' SIGINT  # Handle Ctrl+C properly
+
+  print_menu() {
+    tput ed  # Clear below cursor to prevent ghost options
+    printf "Select an SSH server:\n\n"
+    for i in "${!ssh_available[@]}"; do
+      if [[ $i -eq $index ]]; then
+        invPrint "${ssh_available[i]}"
+      else
+        printf "%s\n" "${ssh_available[i]}"
+      fi
+    done
+    printf "(Use ↑ ↓ to navigate, Enter to connect, Ctrl+C to quit)\n"
+  }
+
+  print_menu
+  while read -rsn1 key; do
+    [[ $key == $'\x1b' ]] && read -rsn2 key  # Read arrow key sequences
+
+    if [[ $key == "[A" ]]; then  # Up arrow
+      ((index--))
+      ((index < 0)) && index=$((ssh_servers - 1))
+    elif [[ $key == "[B" ]]; then  # Down arrow
+      ((index++))
+      ((index >= ssh_servers)) && index=0
+    elif [[ $key == "" ]]; then  # Enter key
+      connectSSH "${ssh_available[$index]}"
+      return
+    fi
+
+    tput cuu $((ssh_servers + 3))  # Move cursor up
+    print_menu
+  done
+}
+
+update() {
+  echo "Checking for updates..."
+  temp_file=$(mktemp) || {
+    echo "Failed to create temp file"
+    exit 1
+  }
+
+  if curl -fsSL "$REPO_URL" -o "$temp_file"; then
+    if cmp -s "$temp_file" "$SCRIPT_PATH"; then
+      echo "Already up to date."
+    else
+      echo "Updating script..."
+      chmod +x "$temp_file"
+      mv "$temp_file" "$SCRIPT_PATH"
+      echo "Update complete! Restarting..."
+      exec "$SCRIPT_PATH" "$@"
+    fi
+  else
+    echo "Failed to download the latest version."
+    rm -f "$temp_file"
+    exit 1
+  fi
+}
+
+help() {
+  cat <<EOF
+
+Sshfind $VERSION - Help Menu
+Repository: https://github.com/${REPO}
+
+Usage: $0 [OPTIONS]
+
+Options:
+  -p, --port PORT        Target SSH port (default: 22)
+  -u, --user USERNAME    SSH username for connections
+  -i, --interface IFACE  Network interface to use
+  -t, --timeout SECONDS  Port check timeout (default: 3)
+  -r, --retries NUM      ARP scan retry attempts (default: 1)
+  -s, --subnet SUBNET    Target subnet (e.g., 192.168.1.0/24)
+  --ssh-timeout SECONDS  SSH connection timeout (default: 5)
+  -v, --verbose          Show verbose SSH output
+  -h, --help             Show this help message
+  --watch                Continuously scan until an SSH server is found.
+  --watch-interval SECS  Time in seconds between each retry (default: 10).
+  --watch-retries NUM    Number of times to retry scanning (default: 1, use 0 for infinite).
+  --update               Update the script to the latest version
+  --keep-menu            Keep menu after SSH disconnection
+
+Examples:
+  Scan default subnet with ARP:  $0
+  Scan specific subnet:          $0 -s 192.168.4.0/24
+  Full verbose scan:             $0 -v -u admin -p 2222
+  Interface and timeout:         $0 -i eth0 -t 5
+
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+  -p | --port)
+    PORT="$2"; shift 2;;
+  -u | --user)
+    USER="$2"; shift 2;;
+  -i | --interface)
+    INTERFACE="-i $2"; shift 2;;
+  -t | --timeout)
+    TIMEOUT="$2"; shift 2;;
+  -r | --retries)
+    RETRIES="$2"; shift 2;;
+  -s | --subnet)
+    SUBNET="$2"; shift 2;;
+  --ssh-timeout)
+    SSH_TIMEOUT="$2"; shift 2;;
+  -v | --verbose)
+    VERBOSE=1; shift;;
+  --watch)
+    WATCH=true; shift;;
+  --watch-interval)
+    WATCH_INTERVAL="$2"; shift 2;;
+  --watch-retries)
+    WATCH_ENDLESS=false;
+    WATCH_RETRIES="$2"; shift 2;;
+  --update)
+    update "$@";;
+  -h | --help)
+    help; exit 0;;
+  --* | -*)
+    echo "Unknown option $1"; exit 1;;
+  *)
+    shift;;
+  esac
+done
+
+echo -n "Initializing network scan" >"$temp_file"
+
+start_SPINNER
+trap stop_SPINNER INT
+
+ARP_CMD=(arp-scan -q -r "$RETRIES" -t "$TIMEOUT" "${INTERFACE}")
+[ -z "$SUBNET" ] && ARP_CMD+=(--localnet) || ARP_CMD+=("$SUBNET")
+
+while [ "$WATCH_RETRIES" -gt 0 ] || [ "$WATCH_ENDLESS" == true ]; do
+  mapfile -t IPs < <("${ARP_CMD[@]}" --format='${IP}' | grep -Eo '^([0-9]{1,3}\.){3}[0-9]{1,3}$')
+
+  declare -A ssh_map
+  ssh_opts=(-o ConnectTimeout="$SSH_TIMEOUT" -o BatchMode=yes -o StrictHostKeyChecking=no)
+  [ $VERBOSE -eq 1 ] && ssh_opts+=(-v)
+  i=0
+  a=${#IPs[@]}
+
+  for IP in "${IPs[@]}"; do
+    echo -n "Checking $IP:${PORT}... ($i/$a)" >"$temp_file"
+    if nc -z -w "$TIMEOUT" "$IP" "$PORT" 2>/dev/null; then
+      if [[ -z "${ssh_map["$IP"]}" ]]; then
+        ssh_map["$IP"]=1
+      fi
+      echo -n "SSH found at $IP" >"$temp_file"
+    else
+      echo -n "No response from $IP" >"$temp_file"
+    fi
+    i=$((i + 1))
+  done
+
+  if [ "${#ssh_map[@]}" -gt 0 ]; then
+    break
+  fi
+
+  if [ "$WATCH" == false ]; then
+    stop_SPINNER
+    echo "No SSH servers found on port ${PORT}!"
+    exit 0
+  fi
+
+  echo "Retrying in $WATCH_INTERVAL seconds..." >"$temp_file"
+
+  sleep "$WATCH_INTERVAL"
+  [[ $WATCH_ENDLESS = false ]] && ((WATCH_RETRIES--))
+done
+
+ssh_available=()
+
+for k in "${!ssh_map[@]}"; do
+  ssh_available+=("$k")
+done
+
+stop_SPINNER
+
+if [[ ${#ssh_map[@]} -eq 1 ]]; then
+  connectSSH "${ssh_available[0]}"
+else
+  connectMenu
+fi
