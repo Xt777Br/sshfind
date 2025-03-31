@@ -62,10 +62,9 @@ sshfind [OPTIONS]
 | `-h, --help`             | Show help message                                                            |
 | `--watch`                | Watch mode: Continuously scan for SSH servers (default: off)                |
 | `--watch-interval SECS`  | Set the interval between repeated scans (default: 10 seconds)               |
-| `--watch-retries NUM`    | Number of retries for the `--watch` mode (default: 1)                       |
+| `--watch-retries NUM`    | Number of retries for the `--watch` mode                       |
 | `--update`               | Update the script to the latest version from GitHub                         |
 | `--uninstall`               | Uninstall the script                                                      |
-| `--keep-menu`            | Keep the SSH connection menu visible after disconnection (default: off)     |
 
 ### Examples
 
