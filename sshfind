@@ -160,6 +160,7 @@ Options:
   --watch-retries NUM    Number of times to retry scanning (default: 1, use 0 for infinite).
   --update               Update the script to the latest version
   --keep-menu            Keep menu after SSH disconnection
+  --uninstall            Uninstall the script
 
 Examples:
   Scan default subnet with ARP:  $0
@@ -197,6 +198,15 @@ while [[ $# -gt 0 ]]; do
     WATCH_RETRIES="$2"; shift 2;;
   --update)
     update "$@"; exit;;
+  --uninstall)
+    echo "Uninstalling sshfind..."
+    if [ -w "$(which "$0")" ]; then
+      rm -f "$(which "$0")"
+    else
+      sudo rm -f "$(which "$0")"
+    fi
+    echo "Uninstall complete."
+    exit 0;;
   -h | --help)
     help; exit 0;;
   --* | -*)
