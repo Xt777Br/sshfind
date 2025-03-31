@@ -21,19 +21,15 @@ This script is designed to find SSH servers running on a local network using ARP
 
 ## Installation
 
-1. Download or clone the repository containing the script.
+Using **curl**:
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Xt777Br/sshfind/main/install.sh)
+```
 
-2. Make the script executable:
-
-   ```bash
-   chmod +x sshfind.sh
-   ```
-
-3. You can now run the script directly:
-
-   ```bash
-   sshfind.sh
-   ```
+Using **wget**:
+```bash
+bash <(wget -qO- https://raw.githubusercontent.com/Xt777Br/sshfind/main/install.sh)
+```
 
 ## Usage
 

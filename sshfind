@@ -3,7 +3,7 @@
 # Header
 VERSION="1.0"
 REPO="Xt777Br/sshfind"
-REPO_URL="https://raw.githubusercontent.com/${REPO}/main/sshfind.sh"
+REPO_URL="https://raw.githubusercontent.com/${REPO}/main/sshfind"
 SCRIPT_PATH="$(realpath "$0")"
 
 # Variables
